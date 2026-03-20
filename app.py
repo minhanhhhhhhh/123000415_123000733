@@ -1,6 +1,7 @@
-# app.py
 import streamlit as st
 from underthesea import word_tokenize, pos_tag
+import pandas as pd
+import base64
 
 st.set_page_config(page_title="Demo POS Tagging Tiếng Việt", layout="wide")
 
@@ -17,9 +18,6 @@ text = st.text_area(
 analyze_clicked = st.button("🔍 Phân tích", type="primary", width="stretch")
 
 col1, col2 = st.columns(2)
-
-import pandas as pd
-import base64
 
 # Bảng giải thích nhãn từ loại
 POS_TAGS_EXPLANATION = {
@@ -67,7 +65,69 @@ POS_COLORS = {
     "CH": "#BDC3C7",
 }
 
-# TODO: Thêm xử lý tokenize và hiển thị kết quả ở col1
+# Hàm highlight
+def highlight_text(tagged_words):
+    html = ""
+    for word, tag in tagged_words:
+        color = POS_COLORS.get(tag, "#FFFFFF")
+        html += f'<span style="background-color:{color}; padding:4px; margin:2px; border-radius:4px">{word} ({tag})</span> '
+    return html
+
+if analyze_clicked:
+    # ✅ TODO: xử lý input rỗng
+    if not text.strip():
+        st.warning("⚠️ Vui lòng nhập câu trước khi phân tích!")
+    else:
+        # ✅ Tokenize
+        tokens = word_tokenize(text)
+
+        # ✅ POS tagging
+        tagged = pos_tag(text)
+
+        # =========================
+        # COL1: TOKENIZE
+        # =========================
+        with col1:
+            st.subheader("🔹 Kết quả Tokenize")
+            st.write(tokens)
+
+        # =========================
+        # COL2: POS TAGGING
+        # =========================
+        with col2:
+            st.subheader("🔹 Kết quả POS Tagging")
+
+            df = pd.DataFrame(tagged, columns=["Từ", "Nhãn"])
+            st.dataframe(df, use_container_width=True)
+
+            # ✅ Highlight màu
+            st.markdown("### 🌈 Highlight từ loại")
+            st.markdown(highlight_text(tagged), unsafe_allow_html=True)
+
+        # =========================
+        # ✅ Export CSV
+        # =========================
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Tải kết quả CSV",
+            data=csv,
+            file_name="pos_tagging_result.csv",
+            mime="text/csv"
+        )
+
+# =========================
+# ✅ Bảng giải thích POS tags
+# =========================
+st.markdown("---")
+st.subheader("📘 Bảng giải thích nhãn từ loại")
+
+pos_df = pd.DataFrame(
+    [(k, v) for k, v in POS_TAGS_EXPLANATION.items()],
+    columns=["Nhãn", "Ý nghĩa"]
+)
+
+st.table(pos_df)
+
 # TODO: Thêm xử lý POS tagging và hiển thị kết quả ở col2
 # TODO: Thêm bảng giải thích các nhãn từ loại (POS tags)
 # TODO: Thêm xử lý lỗi khi input rỗng
